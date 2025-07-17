@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-// WriteJson is a helper function that writes a JSON response with the given status code and data.
+// WriteJSON is a helper function that writes a JSON response with the given status code and data.
 // It sets the Content-Type to "application/json" and uses json.Encoder to write the response body.
 func WriteJSON(w http.ResponseWriter, status int, data any) error {
 	w.WriteHeader(status)
@@ -48,6 +48,7 @@ func NewAPIServer(listenAddr string) *APIServer {
 func (s *APIServer) Start() {
 	router := http.NewServeMux()
 
+	router.HandleFunc("/account/{id}", makeHTTPHandleFunc((s.handleGetAccount)))
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
 
 	fmt.Println("JSON API server running on port: ", s.listenAddr)
@@ -74,12 +75,16 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, req *http.Request) erro
 }
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, req *http.Request) error {
-	return nil
+	id := req.PathValue("id")
+	fmt.Println(id)
+	// db.get(id)
+	return WriteJSON(w, http.StatusOK, id)
 
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, req *http.Request) error {
-	return nil
+	account := NewAccount("Test", "User")
+	return WriteJSON(w, http.StatusOK, account)
 
 }
 
