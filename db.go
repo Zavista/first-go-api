@@ -19,7 +19,7 @@ type PostgresStore struct { // This will implmement the AccountStore interface. 
 	db *sql.DB
 }
 
-func NewPostgresStore() (*PostgresStore, error) {
+func NewPostgresStore() (*PostgresStore, error) { // Constructor Function
 	user := os.Getenv("DB_USER")
 	pass := os.Getenv("DB_PASSWORD")
 	host := os.Getenv("DB_HOST")
@@ -35,7 +35,6 @@ func NewPostgresStore() (*PostgresStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 
 	if err := db.Ping(); err != nil {
 		return nil, err
@@ -47,8 +46,27 @@ func NewPostgresStore() (*PostgresStore, error) {
 	}, nil
 }
 
+// Setup function that initializes our table and sets everything up when we create our postgresstore.
+func (s *PostgresStore) Setup() error {
+	return s.createAccountTable()
+}
+
+func (s *PostgresStore) createAccountTable() error {
+	query := `create table if not exists accounts (
+	id serial primary key,
+	first_name varchar(50),
+	last_name varchar(50),
+	number serial,
+	balance bigint,
+	created_at timestamp
+	)`
+
+	_, err := s.db.Exec(query)
+	return err
+}
+
 func (s *PostgresStore) CreateAccount(*Account) (*Account, error) {
-	account := NewAccount("New", "User")
+	account := NewAccount("New", "User") // remember that this is an ptr
 	return account, nil
 }
 

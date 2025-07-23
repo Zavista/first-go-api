@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -13,11 +12,15 @@ func main() {
 	}
 
 	store, err := NewPostgresStore()
-	if err != nil {
+	if err != nil { // issue with creating our postgresstore
+		log.Fatal(err)
+	}
+	defer store.db.Close() // close the db after we exit (from an error or something else)
+
+	if err := store.Setup(); err != nil { // issue w/ setup (i.e. table creation failed)
 		log.Fatal(err)
 	}
 
-	fmt.Printf("%+v\n", store)
 	server := NewAPIServer(":3000", store)
 	server.Start()
 }
