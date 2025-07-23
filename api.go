@@ -6,42 +6,18 @@ import (
 	"net/http"
 )
 
-// WriteJSON is a helper function that writes a JSON response with the given status code and data.
-// It sets the Content-Type to "application/json" and uses json.Encoder to write the response body.
-func WriteJSON(w http.ResponseWriter, status int, data any) error {
-	w.WriteHeader(status)
-	w.Header().Set("Content-Type", "application/json")
-	return json.NewEncoder(w).Encode(data)
-}
-
-// apiFunc is a custom function signature that wraps HTTP handlers but returns an error.
-// This allows us to centralize error handling using middleware logic
-type apiFunc func(http.ResponseWriter, *http.Request) error
-
-type APIError struct {
-	Error string `json:"error"`
-}
-
-// makeHTTPHandleFunc takes an apiFunc and returns a standard http.HandlerFunc.
-// this is necessary since standard http.HandlerFunc does not accept Error in the function signature but we want to handle error outside of the function
-// so we handle it here, in one centralized handler location
-func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		if err := f(w, req); err != nil {
-			WriteJSON(w, http.StatusBadRequest, APIError{Error: err.Error()})
-		}
-	}
-}
-
 // APIServer is a simple HTTP server that listens for incoming requests
 type APIServer struct {
 	listenAddr string
+	store      AccountStore
 }
 
 // NewAPIServer creates a new APIServer instance with the specified listen address.
-func NewAPIServer(listenAddr string) *APIServer {
+// FACTORY pattern
+func NewAPIServer(listenAddr string, store AccountStore) *APIServer {
 	return &APIServer{
 		listenAddr: listenAddr,
+		store:      store,
 	}
 }
 
@@ -96,4 +72,32 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, req *http.Request
 func (s *APIServer) handleTransfer(w http.ResponseWriter, req *http.Request) error {
 	return nil
 
+}
+
+// WriteJSON is a helper function that writes a JSON response with the given status code and data.
+// It sets the Content-Type to "application/json" and uses json.Encoder to write the response body.
+func WriteJSON(w http.ResponseWriter, status int, data any) error {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(status)
+	return json.NewEncoder(w).Encode(data)
+}
+
+// apiFunc is a custom function signature that wraps HTTP handlers but returns an error.
+// This allows us to centralize error handling using middleware logic
+type apiFunc func(http.ResponseWriter, *http.Request) error
+
+type APIError struct {
+	Error string `json:"error"`
+}
+
+// makeHTTPHandleFunc takes an apiFunc and returns a standard http.HandlerFunc.
+// this is necessary since standard http.HandlerFunc does not accept Error in the function signature but we want to handle error outside of the function
+// so we handle it here, in one centralized handler location
+// btw this is the DECORATOR pattern
+func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if err := f(w, req); err != nil {
+			WriteJSON(w, http.StatusBadRequest, APIError{Error: err.Error()})
+		}
+	}
 }
